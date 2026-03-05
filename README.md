@@ -1,16 +1,139 @@
-# React + Vite
+# 🌿 在野 · In the Wild
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> 你可能已经很了解世界，但你了解自己吗？
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+大多数人花了一生去适应外部的期待，却很少有时间停下来，认真问自己一句：
+**我究竟是什么样的人？**
 
-## React Compiler
+不是别人眼中的我，不是应该成为的我——
+是此刻，真实存在着的我。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**在野** 是一个每日一题的心理自探应用。
+没有游戏化，没有速成结果，没有焦虑排行榜。
+只有一道题，一个情绪意象，一行你想留下的字。
 
-## Expanding the ESLint configuration
+慢慢地，一天一天——
+你会开始看见自己。
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## 记录，比答案更重要
+
+每天答完题，你会选一个今天的情绪意象：
+
+> 晨雾（弥漫，尚未散去）  
+> 暗流（表面平静，内里涌动）  
+> 破晓（某种东西在松动）……
+
+然后留下一句话，或者什么都不写。
+
+这些碎片，会在最后被 AI 一起读取——
+不只是你的答题数据，还有你每一天选择的意象，每一行留下或没留下的文字。
+
+最终的报告是一封信。
+它会告诉你，在你自己都没意识到的地方，你是什么样的人。
+
+---
+
+## 它怎么工作
+
+每天只能打开一次，答一道题。
+不能跳过，不能加速，不能一次做完。
+
+这是一种选择，不是限制。
+用一整天去感受一个问题，答案才是真实的。
+
+做完一整套题库，AI 生成你的专属深度报告。
+做完所有题库，进入纯记录模式——
+没有题目了，只剩每天的情绪意象和一行字。
+
+那也是一种自我认识。
+
+---
+
+## 题库
+
+共 8 套专业心理量表，225 题，225 天。
+
+不提前透露内容。
+每一套做完，才知道它在问你什么。
+
+---
+
+## 为什么做这个
+
+这个项目从我妈妈开始。
+
+她是一个高敏感的人——对声音、气味、他人的情绪都异常敏锐，
+容易被淹没，容易疲惫，也容易深深地爱。
+
+在她那个年代，没有人告诉她这叫"高敏感"。
+她只是觉得自己"太脆弱""想太多""承受不了"。
+她用了很长时间，在没有任何工具的情况下，独自消化这一切。
+
+我后来才明白，她有多不容易。
+也后来才明白，我身上有多少来自她的东西。
+
+了解自己，是一种力量，也是一种笃定。
+它让你能在混乱中站稳，在关系里不那么容易迷失。
+
+我也相信——
+如果为人子女的我们，能更了解自己，
+也许就能更理解父母当年的处境，
+理解他们在那个时代，用那样的方式爱我们，
+有多不容易。
+
+这个应用，送给我妈妈，也送给所有还没有被好好看见的人。
+
+---
+
+## 在线体验
+
+🌐 [inner-field.vercel.app](https://inner-field.vercel.app)
+
+添加到手机桌面，当作一个每天打开的小仪式。
+
+---
+
+## 本地运行
+
+```bash
+git clone https://github.com/ellen623/inner-field.git
+cd inner-field
+npm install
+npm run dev
+```
+
+打开 `http://localhost:5173`
+
+---
+
+## 技术栈
+
+- **React + Vite**
+- **localStorage** — 数据只存在你自己的设备，不上传任何服务器
+- **Claude API** — 报告生成
+- **系统字体** — 明朝体 + Courier New，零外部依赖
+
+---
+
+## 数据隐私
+
+你的所有答题记录、情绪日记、AI 报告，
+全部存储在你自己浏览器的本地。
+我们看不到，也不存储任何内容。
+
+---
+
+## License
+
+MIT — 自由使用，欢迎 fork。
+如果它帮到了你，点一个 Star，或者告诉一个你在乎的人。
+
+---
+
+<p align="center">
+  <em>你已经在用你的方式，认真地活着了。</em>
+</p>
