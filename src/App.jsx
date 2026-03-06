@@ -319,10 +319,10 @@ const NUM  = "'Apple Chancery','Palatino Linotype','Book Antiqua','Palatino',ser
 // Huiwen Mincho: classical Ming-style typeface with authentic letterpress character
 const SONG = "'HuiwenMincho','Hiragino Mincho ProN','YuMincho',serif";
 const BRUSH= "'HuiwenMincho','Hiragino Mincho ProN','YuMincho',serif";
-const INK  = "rgba(18,13,6,.92)";
-const INK2 = "rgba(18,13,6,.65)";
-const INK3 = "rgba(18,13,6,.42)";
-const INK4 = "rgba(18,13,6,.18)";
+const INK  = "rgba(38,34,28,.78)";
+const INK2 = "rgba(38,34,28,.52)";
+const INK3 = "rgba(38,34,28,.34)";
+const INK4 = "rgba(38,34,28,.15)";
 const PAPER= "#ede5d5";
 
 // Letterpress ink filter — applied to all text content
@@ -658,7 +658,7 @@ ${prevSummary ? `报告分为两个部分：
           <div style={{maxWidth:420,width:"100%",textAlign:"center"}}>
             {bank && <div style={{fontFamily:NUM,fontSize:36,color:INK,letterSpacing:"0.04em",lineHeight:1,marginBottom:20,fontWeight:"normal"}}>{String(bProgress).padStart(2,"0")}<span style={{fontSize:14,letterSpacing:1,color:INK2}}> / {String(bTotal).padStart(2,"0")}</span></div>}
             <Rule my={14}/>
-            <p style={{fontFamily:BRUSH,fontSize:18,color:INK,lineHeight:1.9,margin:"0 0 6px",fontWeight:"600",filter:"url(#ink-strong)"}}>今天的记录已封存。</p>
+            <p style={{fontFamily:BRUSH,fontSize:20,color:INK,lineHeight:1.9,margin:"0 0 6px",fontWeight:"600",filter:"url(#ink-strong)"}}>今天的记录已封存。</p>
             <p style={{fontFamily:TW,fontSize:11,color:INK2,letterSpacing:2,margin:"0 0 28px",fontWeight:FW}}>Today's entry is sealed.</p>
             <TRule my={22}/>
             {nextQ ? (
@@ -717,7 +717,7 @@ ${prevSummary ? `报告分为两个部分：
           </div>
           <Rule my={0}/>
           <div style={{margin:"22px 0 26px"}}>
-            <p style={{fontFamily:SONG,fontSize:"clamp(17px,4.5vw,22px)",color:INK,lineHeight:1.9,margin:"0 0 8px",fontWeight:"600",letterSpacing:"0.04em",filter:"url(#ink)"}}>{q.zh}</p>
+            <p style={{fontFamily:SONG,fontSize:"clamp(20px,5.2vw,26px)",color:INK,lineHeight:1.95,margin:"0 0 8px",fontWeight:"600",letterSpacing:"0.04em",filter:"url(#ink)"}}>{q.zh}</p>
             <p style={{fontFamily:TW,fontSize:11,color:INK2,margin:0,lineHeight:1.6,letterSpacing:.5,fontWeight:FW}}>{q.en}</p>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:26}}>
@@ -871,7 +871,7 @@ ${prevSummary ? `报告分为两个部分：
               )}
 
               {/* Report text — split on the synthesis divider */}
-              <div style={{fontFamily:SONG,fontSize:14,color:INK,lineHeight:2.1,letterSpacing:"0.04em",fontWeight:"600",filter:"url(#ink)"}}>
+              <div style={{fontFamily:SONG,fontSize:16,color:INK,lineHeight:2.1,letterSpacing:"0.04em",fontWeight:"600",filter:"url(#ink)"}}>
                 {(() => {
                   const parts = report.split("**综合来看");
                   const singleText = parts[0];
