@@ -315,53 +315,149 @@ const initState = () => load() || {
 };
 
 const TW   = "'Courier New','Courier',monospace";
-// Huiwen Mincho: classical Ming-style typeface, elegant stroke contrast
-const SONG = "'Hiragino Mincho ProN','Hiragino Mincho Pro','YuMincho','Yu Mincho','STSong','SimSun',serif";
-const BRUSH= "'Hiragino Mincho ProN','Hiragino Mincho Pro','YuMincho','Yu Mincho','STSong','SimSun',serif";
-const INK  = "rgba(38,34,28,.72)";
-const INK2 = "rgba(38,34,28,.50)";
-const INK3 = "rgba(38,34,28,.30)";
-const INK4 = "rgba(38,34,28,.13)";
+const NUM  = "'Apple Chancery','Palatino Linotype','Book Antiqua','Palatino',serif";
+// Huiwen Mincho: classical Ming-style typeface with authentic letterpress character
+const SONG = "'HuiwenMincho','Hiragino Mincho ProN','YuMincho',serif";
+const BRUSH= "'HuiwenMincho','Hiragino Mincho ProN','YuMincho',serif";
+const INK  = "rgba(18,13,6,.92)";
+const INK2 = "rgba(18,13,6,.65)";
+const INK3 = "rgba(18,13,6,.42)";
+const INK4 = "rgba(18,13,6,.18)";
 const PAPER= "#ede5d5";
+
+// Letterpress ink filter — applied to all text content
+const InkFilters = () => (
+  <svg style={{position:"fixed",width:0,height:0,pointerEvents:"none"}}>
+    <defs>
+      {/* Main ink filter — edge jitter + erosion + bleed */}
+      <filter id="ink" x="-8%" y="-8%" width="116%" height="116%" colorInterpolationFilters="sRGB">
+        {/* Step 1: coarse displacement — uneven ink pressure across strokes */}
+        <feTurbulence type="fractalNoise" baseFrequency="0.028 0.042" numOctaves="4" seed="8" result="coarse"/>
+        <feDisplacementMap in="SourceGraphic" in2="coarse" scale="1.8" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+        {/* Step 2: fine edge jitter — micro-irregularity at stroke borders */}
+        <feTurbulence type="turbulence" baseFrequency="0.085 0.11" numOctaves="3" seed="21" result="fine"/>
+        <feDisplacementMap in="displaced" in2="fine" scale="0.9" xChannelSelector="G" yChannelSelector="R" result="jittered"/>
+        {/* Step 3: slight blur to simulate ink soaking into paper fibers */}
+        <feGaussianBlur in="jittered" stdDeviation="0.28" result="soaked"/>
+        {/* Step 4: erode edges slightly — worn type that's lost some ink */}
+        <feMorphology in="soaked" operator="erode" radius="0.12" result="eroded"/>
+        {/* Step 5: blend eroded with soaked for natural variation */}
+        <feBlend in="eroded" in2="soaked" mode="multiply" result="blended"/>
+        <feComposite in="blended" in2="SourceGraphic" operator="in"/>
+      </filter>
+
+      {/* Strong ink filter for large display text — quotes, headings */}
+      <filter id="ink-strong" x="-8%" y="-8%" width="116%" height="116%" colorInterpolationFilters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.032 0.048" numOctaves="4" seed="14" result="coarse"/>
+        <feDisplacementMap in="SourceGraphic" in2="coarse" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+        <feTurbulence type="turbulence" baseFrequency="0.095 0.13" numOctaves="3" seed="33" result="fine"/>
+        <feDisplacementMap in="displaced" in2="fine" scale="1.2" xChannelSelector="G" yChannelSelector="R" result="jittered"/>
+        <feGaussianBlur in="jittered" stdDeviation="0.35" result="soaked"/>
+        <feMorphology in="soaked" operator="erode" radius="0.15" result="eroded"/>
+        {/* Dilate slightly after erode — ink blob at stroke ends */}
+        <feMorphology in="eroded" operator="dilate" radius="0.08" result="blobbed"/>
+        <feBlend in="blobbed" in2="soaked" mode="multiply" result="blended"/>
+        <feComposite in="blended" in2="SourceGraphic" operator="in"/>
+      </filter>
+    </defs>
+  </svg>
+);
 
 
 const Paper = () => (
   <div style={{position:"fixed",inset:0,zIndex:0,overflow:"hidden"}}>
-    {/* Base */}
+    {/* Base — color unchanged */}
     <div style={{position:"absolute",inset:0,background:"#ede5d5"}}/>
 
-    {/* Fine grain */}
     <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}>
-      <filter id="grain">
-        <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="4" stitchTiles="stitch"/>
-        <feColorMatrix type="saturate" values="0"/>
-      </filter>
-      <rect width="100%" height="100%" filter="url(#grain)" opacity="0.07"/>
+      <defs>
+        {/* 1. Aged Paper — slow large-scale noise, uneven yellowing */}
+        <filter id="aged" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.016" numOctaves="5" seed="3" stitchTiles="stitch" result="t"/>
+          <feColorMatrix in="t" type="matrix"
+            values="0 0 0 0 0.52
+                    0 0 0 0 0.40
+                    0 0 0 0 0.22
+                    0 0 0 0.13 0"/>
+        </filter>
+        {/* 2. Vintage Texture — mid-frequency fiber, paper pulp feel */}
+        <filter id="vintage" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.065 0.08" numOctaves="6" seed="9" stitchTiles="stitch" result="t"/>
+          <feColorMatrix in="t" type="matrix"
+            values="0 0 0 0 0.45
+                    0 0 0 0 0.34
+                    0 0 0 0 0.18
+                    0 0 0 0.11 0"/>
+        </filter>
+        {/* 3. Newspaper Texture — tight horizontal grain, newsprint dot feel */}
+        <filter id="newsprint" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.72 0.18" numOctaves="3" seed="14" stitchTiles="stitch" result="t"/>
+          <feColorMatrix in="t" type="saturate" values="0" result="g"/>
+          <feColorMatrix in="g" type="matrix"
+            values="0 0 0 0 0.28
+                    0 0 0 0 0.20
+                    0 0 0 0 0.10
+                    0 0 0 0.09 0"/>
+        </filter>
+        {/* 4. Halftone — coarse dot screen, ink bleed at intersections */}
+        <filter id="halftone" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.22 0.22" numOctaves="1" seed="5" stitchTiles="stitch" result="t"/>
+          <feColorMatrix in="t" type="saturate" values="0" result="g"/>
+          <feComponentTransfer in="g" result="dots">
+            <feFuncA type="discrete" tableValues="0 0 0 0 0 0 0.09 0.09"/>
+          </feComponentTransfer>
+          <feColorMatrix in="dots" type="matrix"
+            values="0 0 0 0 0.25
+                    0 0 0 0 0.18
+                    0 0 0 0 0.08
+                    0 0 0 1 0"/>
+        </filter>
+        {/* 5. Grunge Overlay — low-frequency distress, worn & torn marks */}
+        <filter id="grunge" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="turbulence" baseFrequency="0.018 0.024" numOctaves="4" seed="22" stitchTiles="stitch" result="t"/>
+          <feColorMatrix in="t" type="matrix"
+            values="0 0 0 0 0.30
+                    0 0 0 0 0.20
+                    0 0 0 0 0.08
+                    0 0 0 0.12 0"/>
+        </filter>
+      </defs>
 
-      {/* Corner dog-ear folds — irregular diagonal creases near each corner */}
-      <g opacity="0.55" fill="none">
-        {/* top-left */}
+      {/* Stack all 5 layers — each adds to the one before */}
+      <rect width="100%" height="100%" filter="url(#aged)"      opacity="1"/>
+      <rect width="100%" height="100%" filter="url(#vintage)"   opacity="1"/>
+      <rect width="100%" height="100%" filter="url(#newsprint)" opacity="1"/>
+      <rect width="100%" height="100%" filter="url(#halftone)"  opacity="1"/>
+      <rect width="100%" height="100%" filter="url(#grunge)"    opacity="1"/>
+
+      {/* Corner fold lines */}
+      <g fill="none">
         <line x1="0" y1="52" x2="48" y2="0" stroke="rgba(90,62,24,.18)" strokeWidth="0.8"/>
         <line x1="0" y1="54" x2="50" y2="0" stroke="rgba(230,210,170,.22)" strokeWidth="0.6"/>
-        {/* top-right — slightly different angle */}
         <line x1="100%" y1="44" x2="calc(100% - 42px)" y2="0" stroke="rgba(90,62,24,.14)" strokeWidth="0.8"/>
         <line x1="100%" y1="46" x2="calc(100% - 44px)" y2="0" stroke="rgba(230,210,170,.18)" strokeWidth="0.6"/>
-        {/* bottom-left */}
         <line x1="0" y1="calc(100% - 60px)" x2="55" y2="100%" stroke="rgba(90,62,24,.12)" strokeWidth="0.7"/>
         <line x1="0" y1="calc(100% - 58px)" x2="57" y2="100%" stroke="rgba(230,210,170,.16)" strokeWidth="0.5"/>
-        {/* bottom-right — shorter, more worn */}
         <line x1="100%" y1="calc(100% - 36px)" x2="calc(100% - 34px)" y2="100%" stroke="rgba(90,62,24,.10)" strokeWidth="0.7"/>
         <line x1="100%" y1="calc(100% - 34px)" x2="calc(100% - 36px)" y2="100%" stroke="rgba(230,210,170,.14)" strokeWidth="0.5"/>
       </g>
     </svg>
 
-    {/* Corner darkening */}
+    {/* Aged oxidation blotches — warm patches, no hue shift */}
     <div style={{position:"absolute",inset:0,background:`
-      radial-gradient(ellipse 92% 92% at 50% 50%,
-        transparent 58%,
-        rgba(80,58,28,.04) 78%,
-        rgba(60,42,18,.11) 92%,
-        rgba(45,30,10,.18) 100%)
+      radial-gradient(ellipse 65% 45% at 12% 18%, rgba(155,125,72,.09) 0%, transparent 70%),
+      radial-gradient(ellipse 45% 60% at 88% 12%, rgba(138,108,58,.07) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 35% at 72% 88%, rgba(148,118,65,.08) 0%, transparent 65%),
+      radial-gradient(ellipse 38% 55% at 6%  82%, rgba(128,98,50,.06)  0%, transparent 60%)
+    `}}/>
+
+    {/* Edge vignette */}
+    <div style={{position:"absolute",inset:0,background:`
+      radial-gradient(ellipse 90% 90% at 50% 50%,
+        transparent 50%,
+        rgba(75,52,22,.05) 72%,
+        rgba(58,38,14,.13) 88%,
+        rgba(42,26,8,.22)  100%)
     `}}/>
   </div>
 );
@@ -410,7 +506,7 @@ export default function App() {
     setTimeout(()=>doReport(ns, bk), 300);
   };
 
-  const BUILTIN_KEY = "sk-eLecbtKDKvnlLsV2NKHfAH7SMiakbNyKeHOpLSHr0O07LpyH"; // 替换成你自己的key
+  const BUILTIN_KEY = "YOUR_API_KEY_HERE"; // 替换成你自己的key
   const isFirstBank = (bk) => bk.id === "HSP";
 
   const doReport = async (st, bk) => {
@@ -489,19 +585,22 @@ ${journal||"（无文字记录）"}
   const Btn = ({label,onClick,disabled=false,ghost=false})=>(
     <button onClick={onClick} disabled={disabled} style={{
       width:"100%",padding:"13px 0",
-      background:ghost?"transparent":(disabled?"transparent":INK),
-      border:`1px solid ${disabled?INK4:INK}`,
-      color:ghost?INK2:(disabled?INK3:PAPER),
-      fontFamily:TW,fontSize:11,letterSpacing:3,fontWeight:FW,
+      background:ghost?"transparent":(disabled?"transparent":"rgba(18,13,6,.92)"),
+      border:`1px solid ${disabled?"rgba(18,13,6,.18)":"rgba(18,13,6,.92)"}`,
+      color:ghost?"rgba(18,13,6,.65)":(disabled?"rgba(18,13,6,.42)":PAPER),
+      fontFamily:"'Courier New','Courier',monospace",
+      fontSize:11,letterSpacing:4,fontWeight:400,
       cursor:disabled?"not-allowed":"pointer",
-      borderRadius:1,textTransform:"uppercase",transition:"all .18s",
+      borderRadius:0,textTransform:"uppercase",transition:"all .18s",
+      filter:"none",
     }}>{label}</button>
   );
   const W = (extra={})=>({
     position:"relative",zIndex:10,minHeight:"100vh",
     display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
     padding:"40px 20px",opacity:fade?1:0,transition:"opacity .23s ease",
-    fontFamily:SONG,...extra,
+    fontFamily:SONG,
+    ...extra,
   });
 
   // ── REST ──
@@ -510,18 +609,19 @@ ${journal||"（无文字记录）"}
     return (
       <>
           <Paper/>
+        <InkFilters/>
         <div style={W()}>
           <div style={{maxWidth:420,width:"100%",textAlign:"center"}}>
-            {bank && <div style={{fontFamily:TW,fontSize:32,color:INK,letterSpacing:"0.05em",lineHeight:1,marginBottom:20,fontWeight:700}}>{String(bProgress).padStart(2,"0")}<span style={{fontSize:14,letterSpacing:1,color:INK2}}> / {String(bTotal).padStart(2,"0")}</span></div>}
+            {bank && <div style={{fontFamily:NUM,fontSize:36,color:INK,letterSpacing:"0.04em",lineHeight:1,marginBottom:20,fontWeight:"normal"}}>{String(bProgress).padStart(2,"0")}<span style={{fontSize:14,letterSpacing:1,color:INK2}}> / {String(bTotal).padStart(2,"0")}</span></div>}
             <Rule my={14}/>
-            <p style={{fontFamily:BRUSH,fontSize:18,color:INK,lineHeight:1.9,margin:"0 0 6px",fontWeight:"normal"}}>今天的记录已封存。</p>
+            <p style={{fontFamily:BRUSH,fontSize:18,color:INK,lineHeight:1.9,margin:"0 0 6px",fontWeight:"600",filter:"url(#ink-strong)"}}>今天的记录已封存。</p>
             <p style={{fontFamily:TW,fontSize:11,color:INK2,letterSpacing:2,margin:"0 0 28px",fontWeight:FW}}>Today's entry is sealed.</p>
             <TRule my={22}/>
             {nextQ ? (
               <>
-                <p style={{fontFamily:BRUSH,fontSize:16,color:INK,lineHeight:1.85,margin:"0 0 8px",fontWeight:"normal",whiteSpace:"pre-line"}}>{nextQ.quote.zh}</p>
-                <p style={{fontFamily:TW,fontSize:10,color:INK2,letterSpacing:.5,whiteSpace:"pre-line",marginBottom:8,fontWeight:FW}}>{nextQ.quote.en}</p>
-                <p style={{fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,fontWeight:FW}}>— {nextQ.quote.author}</p>
+                <p style={{fontFamily:BRUSH,fontSize:17,color:INK,lineHeight:1.85,margin:"0 0 10px",fontWeight:"600",fontStyle:"italic",filter:"url(#ink-strong)"}}>每天多了解自己一点点。明天见。</p>
+                <p style={{fontFamily:TW,fontSize:10,color:INK2,letterSpacing:.5,marginBottom:4,fontWeight:FW}}>A daily one-question journal</p>
+                <p style={{fontFamily:TW,fontSize:10,color:INK2,letterSpacing:.5,marginBottom:0,fontWeight:FW}}>for self-discovery.</p>
               </>
             ) : <p style={{fontFamily:SONG,fontSize:14,color:INK2,fontStyle:"italic",fontWeight:FW}}>明天继续。</p>}
             {bank && <p style={{fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,marginTop:24,fontWeight:FW}}>{bTotal-bProgress} questions remain · {bank.en}</p>}
@@ -535,6 +635,7 @@ ${journal||"（无文字记录）"}
   if (screen==="q" && q && bank) return (
     <>
       <Paper/>
+      <InkFilters/>
       <div style={W()}>
         <div style={{maxWidth:460,width:"100%"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:16}}>
@@ -542,11 +643,11 @@ ${journal||"（无文字记录）"}
               <Label t={`${bank.id} · ${bank.en}`}/>
               <div style={{fontFamily:SONG,fontSize:11,color:INK3,marginTop:3,fontWeight:FW}}>{bank.label}</div>
             </div>
-            <div style={{fontFamily:TW,fontSize:32,color:INK,letterSpacing:"0.05em",lineHeight:1,fontWeight:700}}>{String(qIdx+1).padStart(2,"0")}</div>
+            <div style={{fontFamily:NUM,fontSize:36,color:INK,letterSpacing:"0.04em",lineHeight:1,fontWeight:"normal"}}>{String(qIdx+1).padStart(2,"0")}</div>
           </div>
           <Rule my={0}/>
           <div style={{margin:"22px 0 26px"}}>
-            <p style={{fontFamily:SONG,fontSize:"clamp(17px,4.5vw,22px)",color:INK,lineHeight:1.9,margin:"0 0 8px",fontWeight:"normal",letterSpacing:"0.04em"}}>{q.zh}</p>
+            <p style={{fontFamily:SONG,fontSize:"clamp(17px,4.5vw,22px)",color:INK,lineHeight:1.9,margin:"0 0 8px",fontWeight:"600",letterSpacing:"0.04em",filter:"url(#ink)"}}>{q.zh}</p>
             <p style={{fontFamily:TW,fontSize:11,color:INK2,margin:0,lineHeight:1.6,letterSpacing:.5,fontWeight:FW}}>{q.en}</p>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:26}}>
@@ -555,7 +656,7 @@ ${journal||"（无文字记录）"}
               return (
                 <button key={s} onClick={()=>setSel(s)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 13px",background:active?"rgba(38,34,28,.08)":"transparent",border:`1px solid ${active?"rgba(38,34,28,.40)":INK4}`,borderRadius:1,cursor:"pointer",transition:"all .14s",textAlign:"left"}}>
                   <span style={{fontFamily:TW,fontSize:11,color:active?INK:INK3,width:14,flexShrink:0,fontWeight:FW}}>{s}</span>
-                  <span style={{fontFamily:SONG,fontSize:14,color:active?INK:INK2,flex:1,fontWeight:"normal"}}>{zh}</span>
+                  <span style={{fontFamily:SONG,fontSize:14,color:active?INK:INK2,flex:1,fontWeight:"600"}}>{zh}</span>
                   <span style={{fontFamily:TW,fontSize:10,color:active?INK2:INK3,letterSpacing:.3,fontWeight:FW}}>{en}</span>
                   {active&&<div style={{width:5,height:5,borderRadius:"50%",background:INK,flexShrink:0}}/>}
                 </button>
@@ -569,7 +670,7 @@ ${journal||"（无文字记录）"}
             <span style={{fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,fontWeight:FW}}>DAY {bProgress+1}</span>
             <span style={{fontFamily:TW,fontSize:8,color:INK3,fontWeight:FW}}>{bProgress} / {bTotal} complete</span>
           </div>
-          <Btn label={sel?"Continue →":"Select an answer"} onClick={handleContinue} disabled={!sel}/>
+          <Btn label={sel?"继续  Continue →":"请先选择  Select an answer"} onClick={handleContinue} disabled={!sel}/>
           <div style={{marginTop:24,textAlign:"center"}}>
             <button onClick={devSkipToReport} style={{background:"none",border:"none",fontFamily:TW,fontSize:8,color:INK4,letterSpacing:2,cursor:"pointer",textTransform:"uppercase"}}>dev: skip to report</button>
           </div>
@@ -582,11 +683,12 @@ ${journal||"（无文字记录）"}
   if (screen==="r" && q) return (
     <>
       <Paper/>
+      <InkFilters/>
       <div style={W({justifyContent:"flex-start",paddingTop:44,paddingBottom:52})}>
         <div style={{maxWidth:460,width:"100%"}}>
           <Label t="一句值得驻留的话 · A line to dwell on"/>
           <Rule my={16}/>
-          <p style={{fontFamily:BRUSH,fontSize:"clamp(19px,5vw,26px)",color:INK,lineHeight:1.78,margin:"0 0 14px",whiteSpace:"pre-line",fontWeight:"normal",fontStyle:"italic"}}>{q.quote.zh}</p>
+          <p style={{fontFamily:BRUSH,fontSize:"clamp(19px,5vw,26px)",color:INK,lineHeight:1.78,margin:"0 0 14px",whiteSpace:"pre-line",fontWeight:"600",fontStyle:"italic",filter:"url(#ink-strong)"}}>{q.quote.zh}</p>
           <p style={{fontFamily:TW,fontSize:11,color:INK2,lineHeight:1.65,margin:"0 0 12px",whiteSpace:"pre-line",letterSpacing:.4,fontWeight:FW}}>{q.quote.en}</p>
           <div style={{fontFamily:TW,fontSize:10,color:INK3,letterSpacing:2,fontWeight:FW}}>— {q.quote.author}</div>
           <TRule my={26}/>
@@ -597,7 +699,7 @@ ${journal||"（无文字记录）"}
               const active=em?.zh===e.zh;
               return (
                 <button key={e.zh} onClick={()=>setEm(e)} style={{padding:"12px 6px",textAlign:"center",background:active?"rgba(38,34,28,.08)":"transparent",border:`1px solid ${active?"rgba(38,34,28,.42)":INK4}`,borderRadius:1,cursor:"pointer",transition:"all .14s"}}>
-                  <div style={{fontFamily:SONG,fontSize:14,color:active?INK:INK2,marginBottom:3,fontWeight:"normal",letterSpacing:"0.03em"}}>{e.zh}</div>
+                  <div style={{fontFamily:SONG,fontSize:14,color:active?INK:INK2,marginBottom:3,fontWeight:"600",letterSpacing:"0.03em"}}>{e.zh}</div>
                   <div style={{fontFamily:TW,fontSize:7,color:active?INK2:INK3,letterSpacing:.5,textTransform:"uppercase",lineHeight:1.3,fontWeight:FW}}>{e.en}</div>
                 </button>
               );
@@ -622,6 +724,7 @@ ${journal||"（无文字记录）"}
   if (screen==="report") return (
     <>
       <Paper/>
+      <InkFilters/>
       <div style={W({justifyContent:"flex-start",paddingTop:44,paddingBottom:64})}>
         <div style={{maxWidth:500,width:"100%"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:16}}>
@@ -664,7 +767,7 @@ ${journal||"（无文字记录）"}
           ):loading?(
             <div style={{textAlign:"center",padding:"52px 0"}}>
               <div style={{fontFamily:TW,fontSize:22,color:INK3,letterSpacing:6,marginBottom:18,animation:"blink 1.4s infinite",fontWeight:FW}}>· · ·</div>
-              <p style={{fontFamily:BRUSH,fontSize:15,color:INK2,lineHeight:1.9,fontWeight:"normal"}}>正在阅读你留下的痕迹</p>
+              <p style={{fontFamily:BRUSH,fontSize:15,color:INK2,lineHeight:1.9,fontWeight:"600"}}>正在阅读你留下的痕迹</p>
               <p style={{fontFamily:TW,fontSize:10,color:INK3,letterSpacing:3,marginTop:8,fontWeight:FW}}>reading your traces</p>
               <style>{`@keyframes blink{0%,100%{opacity:.15}50%{opacity:.65}}`}</style>
             </div>
@@ -679,7 +782,7 @@ ${journal||"（无文字记录）"}
                   <span style={{fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,fontWeight:FW}}>HIGH</span>
                 </div>
               </div>
-              <div style={{fontFamily:SONG,fontSize:14,color:INK,lineHeight:2.1,letterSpacing:"0.04em",fontWeight:"normal"}}>
+              <div style={{fontFamily:SONG,fontSize:14,color:INK,lineHeight:2.1,letterSpacing:"0.04em",fontWeight:"600",filter:"url(#ink)"}}>
                 {report.split(/(\*\*[^*]+\*\*)/).map((part,i)=>
                   part.startsWith("**")&&part.endsWith("**")
                     ?<div key={i} style={{fontFamily:TW,fontSize:10,letterSpacing:3,color:INK2,textTransform:"uppercase",marginTop:28,marginBottom:8,fontWeight:FW}}>{part.slice(2,-2)}</div>
@@ -687,9 +790,9 @@ ${journal||"（无文字记录）"}
                 )}
               </div>
               <TRule my={32}/>
-              <Btn label={`Next: ${BANKS[state.currentBankIdx+1]?.id||"Pure Record"} →`} onClick={handleNextBank}/>
+              <Btn label={`开启下一套  ${BANKS[state.currentBankIdx+1]?.label||"纯粹记录"} →`} onClick={handleNextBank}/>
               <div style={{height:8}}/>
-              <Btn ghost label="Start Over · 重新开始" onClick={()=>{if(window.confirm("重置所有记录？")){localStorage.removeItem(KEY);setState(initState());setScreen("q");}}}/>
+              <Btn ghost label="重新开始  Start Over" onClick={()=>{if(window.confirm("重置所有记录？")){localStorage.removeItem(KEY);setState(initState());setScreen("q");}}}/>
             </div>
           )}
         </div>
@@ -704,12 +807,13 @@ ${journal||"（无文字记录）"}
     if (doneTdy) return (
       <>
           <Paper/>
+        <InkFilters/>
         <div style={W()}>
           <div style={{maxWidth:420,width:"100%",textAlign:"center"}}>
             <Label t="Pure Record · 纯粹记录" style={{display:"block",textAlign:"center",marginBottom:18}}/>
             <Rule my={0}/>
             <div style={{height:16}}/>
-            <p style={{fontFamily:BRUSH,fontSize:17,color:INK,lineHeight:1.9,fontWeight:"normal"}}>今天的心情已记录。</p>
+            <p style={{fontFamily:BRUSH,fontSize:17,color:INK,lineHeight:1.9,fontWeight:"600"}}>今天的心情已记录。</p>
             <p style={{fontFamily:TW,fontSize:11,color:INK2,letterSpacing:2,marginBottom:28,fontWeight:FW}}>See you tomorrow.</p>
             <TRule my={22}/>
             <p style={{fontFamily:BRUSH,fontSize:16,color:INK,lineHeight:1.9,fontWeight:"normal",whiteSpace:"pre-line"}}>{rq.zh}</p>
@@ -722,6 +826,7 @@ ${journal||"（无文字记录）"}
     return (
       <>
           <Paper/>
+        <InkFilters/>
         <div style={W({justifyContent:"flex-start",paddingTop:44,paddingBottom:52})}>
           <div style={{maxWidth:460,width:"100%"}}>
             <Label t="Pure Record · 纯粹记录"/>
@@ -739,7 +844,7 @@ ${journal||"（无文字记录）"}
                 const active=em?.zh===e.zh;
                 return (
                   <button key={e.zh} onClick={()=>setEm(e)} style={{padding:"12px 6px",textAlign:"center",background:active?"rgba(38,34,28,.08)":"transparent",border:`1px solid ${active?"rgba(38,34,28,.42)":INK4}`,borderRadius:1,cursor:"pointer",transition:"all .14s"}}>
-                    <div style={{fontFamily:SONG,fontSize:14,color:active?INK:INK2,marginBottom:3,fontWeight:"normal",letterSpacing:"0.03em"}}>{e.zh}</div>
+                    <div style={{fontFamily:SONG,fontSize:14,color:active?INK:INK2,marginBottom:3,fontWeight:"600",letterSpacing:"0.03em"}}>{e.zh}</div>
                     <div style={{fontFamily:TW,fontSize:7,color:active?INK2:INK3,letterSpacing:.5,textTransform:"uppercase",lineHeight:1.3,fontWeight:FW}}>{e.en}</div>
                   </button>
                 );
