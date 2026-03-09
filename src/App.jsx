@@ -776,28 +776,80 @@ ${prevSummary ? `报告分为两个部分：
             ) : <p style={{fontFamily:SONG,fontSize:14,color:INK2,fontStyle:"italic",fontWeight:FW}}>明天继续。</p>}
             {bank && <p style={{fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,marginTop:24,fontWeight:FW}}>{bTotal-bProgress} questions remain · {bank.en}</p>}
 
-            {/* ── 方案二：常驻小字 ── */}
+            {/* ── 数据模块：未登录 / 已登录 两态 ── */}
             <div style={{marginTop:36,paddingTop:16,borderTop:`1px solid ${INK4}`}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-                <p style={{fontFamily:SONG,fontSize:11,color:INK3,letterSpacing:"0.05em",fontStyle:"italic"}}>记忆存于此地，勿清缓存</p>
-                {/* ── 方案三：我的数据入口 ── */}
-                <button onClick={()=>setShowData(!showData)} style={{background:"none",border:`1px solid ${INK4}`,padding:"2px 8px",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,cursor:"pointer",textTransform:"uppercase"}}>
-                  {showData?"收起":"我的数据"}
-                </button>
-              </div>
-
-              {showData && (
-                <div style={{marginTop:16,textAlign:"left"}}>
-                  <TRule my={0}/>
-                  <p style={{fontFamily:SONG,fontSize:12,color:INK2,lineHeight:2,margin:"14px 0 16px",letterSpacing:"0.04em"}}>
-                    你留下的一切，藏在这台设备的浏览器里。它不在云端，不在服务器，只在这里。清除浏览器数据，或换一台设备，它就消失了。如果你想留住它，请导出备份。
-                  </p>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                    <span style={{fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,fontWeight:FW}}>已记录 {totalDays} 天</span>
-                    <button onClick={exportData} style={{background:"none",border:`1px solid ${INK4}`,padding:"5px 12px",fontFamily:TW,fontSize:9,color:INK2,letterSpacing:2,cursor:"pointer",textTransform:"uppercase"}}>
-                      导出备份 Export →
+              {!user ? (
+                /* 未登录态：原有说明 + 引导登录 */
+                <div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+                    <p style={{fontFamily:SONG,fontSize:11,color:INK3,letterSpacing:"0.05em",fontStyle:"italic",margin:0}}>记忆存于此地，勿清缓存</p>
+                    <button onClick={()=>setShowData(!showData)} style={{background:"none",border:`1px solid ${INK4}`,padding:"2px 8px",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,cursor:"pointer",textTransform:"uppercase"}}>
+                      {showData?"收起":"我的数据"}
                     </button>
                   </div>
+                  {showData && (
+                    <div style={{marginTop:16,textAlign:"left"}}>
+                      <TRule my={0}/>
+                      <p style={{fontFamily:SONG,fontSize:12,color:INK2,lineHeight:2,margin:"14px 0 16px",letterSpacing:"0.04em"}}>
+                        你留下的一切，藏在这台设备的浏览器里。它不在云端，不在服务器，只在这里。清除浏览器数据，或换一台设备，它就消失了。如果你想留住它，请导出备份。
+                      </p>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                        <span style={{fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,fontWeight:FW}}>已记录 {totalDays} 天</span>
+                        <button onClick={exportData} style={{background:"none",border:`1px solid ${INK4}`,padding:"5px 12px",fontFamily:TW,fontSize:9,color:INK2,letterSpacing:2,cursor:"pointer",textTransform:"uppercase"}}>
+                          导出备份 Export →
+                        </button>
+                      </div>
+                      <TRule my={0}/>
+                      <p style={{fontFamily:SONG,fontSize:11,color:INK3,lineHeight:1.9,margin:"14px 0 10px",letterSpacing:"0.03em",fontStyle:"italic"}}>
+                        也可以注册账号，让记录跟随你而非设备。
+                      </p>
+                      <button onClick={()=>setAuthScreen("register")} style={{background:"none",border:`1px solid ${INK4}`,padding:"5px 14px",fontFamily:TW,fontSize:9,color:INK2,letterSpacing:3,cursor:"pointer",textTransform:"uppercase"}}>
+                        云端备份 →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* 登录态：回顾记录 */
+                <div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <p style={{fontFamily:SONG,fontSize:11,color:INK3,fontStyle:"italic",margin:0}}>
+                      已记录 {totalDays} 天
+                    </p>
+                    <button onClick={()=>setShowData(!showData)} style={{background:"none",border:`1px solid ${INK4}`,padding:"3px 10px",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,cursor:"pointer"}}>
+                      {showData?"收起":"回顾记录"}
+                    </button>
+                  </div>
+
+                  {showData && (
+                    <div style={{marginTop:16}}>
+                      <TRule my={0}/>
+                      {Object.entries(state.bankAnswers).map(([bankId, answers])=>{
+                        const bk = BANKS.find(b=>b.id===bankId);
+                        if (!bk || Object.keys(answers).length===0) return null;
+                        const refs = state.bankReflections?.[bankId]||{};
+                        const emos = state.bankEmotions?.[bankId]||{};
+                        const entries = Object.entries(refs).filter(([,v])=>v);
+                        return (
+                          <div key={bankId} style={{marginTop:20}}>
+                            <div style={{fontFamily:TW,fontSize:9,color:INK2,letterSpacing:3,marginBottom:10,textTransform:"uppercase"}}>{bk.label} · {bk.en}</div>
+                            {entries.length===0
+                              ? <p style={{fontFamily:SONG,fontSize:11,color:INK3,fontStyle:"italic"}}>这段时间，你选择了沉默。</p>
+                              : entries.map(([idx,text])=>(
+                                <div key={idx} style={{marginBottom:14,paddingLeft:10,borderLeft:`1px solid ${INK4}`}}>
+                                  {emos[idx] && <span style={{fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,display:"block",marginBottom:3}}>{emos[idx]}</span>}
+                                  <p style={{fontFamily:SONG,fontSize:12,color:INK2,lineHeight:1.9,margin:0,letterSpacing:"0.03em"}}>{text}</p>
+                                </div>
+                              ))
+                            }
+                          </div>
+                        );
+                      })}
+                      {Object.values(state.bankAnswers).every(a=>Object.keys(a).length===0) && (
+                        <p style={{fontFamily:SONG,fontSize:12,color:INK3,fontStyle:"italic",marginTop:14}}>你还没有留下任何文字。也许明天。</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
