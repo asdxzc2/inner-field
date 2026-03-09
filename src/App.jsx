@@ -484,9 +484,19 @@ export default function App() {
   const [authErr,   setAuthErr]     = useState("");
   const [resetSent, setResetSent]   = useState(false);
   const [resetMode, setResetMode]   = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetScreen, setResetScreen] = useState(false);
   const authEmailRef = useRef("");
   const authPassRef  = useRef("");
   const textRef = useRef(null);
+
+  // Detect password reset token in URL
+  useEffect(()=>{
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) {
+      setResetScreen(true);
+    }
+  },[]);
 
   // Supabase auth listener
   const didSyncRef = useRef(false);
@@ -555,7 +565,7 @@ export default function App() {
     if (error) {
       const msg = error.message.includes("already registered") || error.message.includes("already been registered")
         ? "抓到你了！这个邮箱已注册，快去登录 →"
-        : error.message;
+        : translateError(error.message);
       setAuthErr(msg); return;
     }
     setAuthScreen(null);
@@ -589,12 +599,32 @@ export default function App() {
     }
   };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); };
+
+  const translateError = (msg) => {
+    if (!msg) return "";
+    if (msg.includes("already registered") || msg.includes("already been registered")) return "抓到你了！这个邮箱已注册，快去登录 →";
+    if (msg.includes("valid password") || msg.includes("password")) return "不要犯马虎，好好写密码！";
+    if (msg.includes("Invalid login") || msg.includes("Invalid email or password")) return "邮箱或密码不对，再想想？";
+    if (msg.includes("Email not confirmed")) return "邮箱还没验证，去信箱看看。";
+    if (msg.includes("User not found")) return "没找到这个账号，要不要注册一个？";
+    if (msg.includes("Too many requests")) return "太着急了，稍等一会儿再试。";
+    if (msg.includes("Network") || msg.includes("fetch")) return "网络开小差了，刷新试试？";
+    return msg;
+  };
+  const handleNewPassword = async () => {
+    if (!newPassword || newPassword.length < 6) { setAuthErr("不要犯马虎，好好写密码！"); return; }
+    const {error} = await supabase.auth.updateUser({password: newPassword});
+    if (error) { setAuthErr(translateError(error.message)); return; }
+    setResetScreen(false);
+    window.history.replaceState(null, "", window.location.pathname);
+  };
+
   const handleReset = async () => {
     setAuthErr("");
     const {error} = await supabase.auth.resetPasswordForEmail(authEmailRef.current, {
       redirectTo: "https://inner-field.vercel.app"
     });
-    if (error) setAuthErr(error.message);
+    if (error) setAuthErr(translateError(error.message));
     else setResetSent(true);
   };
 
@@ -750,6 +780,30 @@ ${prevSummary ? `报告分为两个部分：
 
   const [showData, setShowData] = useState(false);
   const [reportTab, setReportTab] = useState("single");
+
+  // ── RESET PASSWORD SCREEN ──
+  if (resetScreen) return (
+    <>
+      <Paper/><InkFilters/>
+      <div style={W()}>
+        <div style={{maxWidth:360,width:"100%"}}>
+          <div style={{fontFamily:TW,fontSize:10,letterSpacing:3,color:INK2,marginBottom:16,textTransform:"uppercase",fontWeight:700}}>重置密码  New Password</div>
+          <div style={{height:1,background:INK,opacity:.35,marginBottom:24}}/>
+          <p style={{fontFamily:SONG,fontSize:12,color:INK3,lineHeight:1.9,marginBottom:20,letterSpacing:"0.03em"}}>
+            设一个新密码，记住它。
+          </p>
+          <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)}
+            placeholder="新密码（至少6位）"
+            style={{width:"100%",padding:"11px 14px",marginBottom:10,background:"rgba(18,13,6,.04)",border:`1px solid rgba(18,13,6,.18)`,fontFamily:SONG,fontSize:13,color:"rgba(18,13,6,.92)",outline:"none",boxSizing:"border-box"}}/>
+          {authErr && <div style={{fontFamily:"Courier New",fontSize:10,color:"rgba(160,60,40,.8)",letterSpacing:1,marginBottom:10}}>{authErr}</div>}
+          <button onClick={handleNewPassword}
+            style={{width:"100%",padding:"12px 0",background:"rgba(18,13,6,.9)",border:"none",color:"#ede5d5",fontFamily:"Courier New",fontSize:11,letterSpacing:4,cursor:"pointer",marginTop:8}}>
+            确认修改 →
+          </button>
+        </div>
+      </div>
+    </>
+  );
 
   // ── AUTH OVERLAY ──
   const AuthOverlay = () => (
