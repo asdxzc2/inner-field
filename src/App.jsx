@@ -482,6 +482,8 @@ export default function App() {
   const userRef = useRef(null);
   const [authScreen, setAuthScreen] = useState(null);
   const [authErr,   setAuthErr]     = useState("");
+  const [resetSent, setResetSent]   = useState(false);
+  const [resetMode, setResetMode]   = useState(false);
   const authEmailRef = useRef("");
   const authPassRef  = useRef("");
   const textRef = useRef(null);
@@ -550,7 +552,12 @@ export default function App() {
   const handleRegister = async () => {
     setAuthErr("");
     const {data, error} = await supabase.auth.signUp({email:authEmailRef.current, password:authPassRef.current});
-    if (error) { setAuthErr(error.message); return; }
+    if (error) {
+      const msg = error.message.includes("already registered") || error.message.includes("already been registered")
+        ? "抓到你了！这个邮箱已注册，快去登录 →"
+        : error.message;
+      setAuthErr(msg); return;
+    }
     setAuthScreen(null);
     if (data?.session) {
       const local = load();
@@ -582,6 +589,14 @@ export default function App() {
     }
   };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); };
+  const handleReset = async () => {
+    setAuthErr("");
+    const {error} = await supabase.auth.resetPasswordForEmail(authEmailRef.current, {
+      redirectTo: "https://inner-field.vercel.app"
+    });
+    if (error) setAuthErr(error.message);
+    else setResetSent(true);
+  };
 
   const bank     = state.allBanksDone ? null : BANKS[state.currentBankIdx] || null;
   const bAnswers = bank ? (state.bankAnswers[bank.id]||{}) : {};
@@ -741,34 +756,77 @@ ${prevSummary ? `报告分为两个部分：
     <div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(237,229,213,.96)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{maxWidth:360,width:"100%"}}>
         <div style={{fontFamily:TW,fontSize:10,letterSpacing:3,color:INK2,marginBottom:16,textTransform:"uppercase",fontWeight:700}}>
-          {authScreen==="register"?"创建账号  Register":"登录  Sign In"}
+          {resetMode ? "重置密码  Reset" : authScreen==="register" ? "创建账号  Register" : "登录  Sign In"}
         </div>
         <div style={{height:1,background:INK,opacity:.35,marginBottom:24}}/>
-        <input defaultValue="" onChange={e=>{ authEmailRef.current=e.target.value; }}
-          placeholder="邮箱 Email"
-          style={{width:"100%",padding:"11px 14px",marginBottom:10,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
-        <input type="password" defaultValue="" onChange={e=>{ authPassRef.current=e.target.value; }}
-          placeholder="密码 Password（至少6位）"
-          style={{width:"100%",padding:"11px 14px",marginBottom:6,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
-        {authErr && <div style={{fontFamily:TW,fontSize:10,color:"rgba(160,60,40,.8)",letterSpacing:1,marginBottom:10}}>{authErr}</div>}
-        <button onClick={authScreen==="register"?handleRegister:handleLogin}
-          style={{width:"100%",padding:"12px 0",background:"rgba(18,13,6,.9)",border:"none",color:"#ede5d5",fontFamily:TW,fontSize:11,letterSpacing:4,cursor:"pointer",marginBottom:10,marginTop:8}}>
-          {authScreen==="register"?"注册  Register":"登录  Sign In"}
-        </button>
-        <div style={{display:"flex",justifyContent:"space-between"}}>
-          <button onClick={()=>setAuthScreen(authScreen==="register"?"login":"register")}
-            style={{background:"none",border:"none",fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,cursor:"pointer"}}>
-            {authScreen==="register"?"已有账号 →":"注册新账号 →"}
-          </button>
-          <button onClick={()=>setAuthScreen(null)}
-            style={{background:"none",border:"none",fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,cursor:"pointer"}}>
-            暂不登录 skip
-          </button>
-        </div>
-        <div style={{height:1,background:INK4,margin:"20px 0 14px"}}/>
-        <p style={{fontFamily:SONG,fontSize:12,color:INK3,lineHeight:1.8,fontStyle:"italic"}}>
-          登录后，你的记录会同步到云端，换设备也不会丢失。
-        </p>
+        {resetMode ? (
+          resetSent ? (
+            <div>
+              <p style={{fontFamily:SONG,fontSize:13,color:INK2,lineHeight:2,letterSpacing:"0.04em"}}>
+                邮件已发出。<br/>去信箱里找一找，按链接重置密码后，再回来登录。
+              </p>
+              <button onClick={()=>{setResetMode(false);setResetSent(false);}} style={{marginTop:16,background:"none",border:`1px solid ${INK4}`,padding:"8px 20px",fontFamily:TW,fontSize:9,color:INK2,letterSpacing:3,cursor:"pointer"}}>
+                返回登录 →
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p style={{fontFamily:SONG,fontSize:12,color:INK3,lineHeight:1.9,marginBottom:16,letterSpacing:"0.03em"}}>
+                输入你的邮箱，我们发一封重置密码的信给你。
+              </p>
+              <input defaultValue="" onChange={e=>{ authEmailRef.current=e.target.value; }}
+                placeholder="邮箱 Email"
+                style={{width:"100%",padding:"11px 14px",marginBottom:10,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
+              {authErr && <div style={{fontFamily:TW,fontSize:10,color:"rgba(160,60,40,.8)",letterSpacing:1,marginBottom:10}}>{authErr}</div>}
+              <button onClick={handleReset} style={{width:"100%",padding:"12px 0",background:"rgba(18,13,6,.9)",border:"none",color:"#ede5d5",fontFamily:TW,fontSize:11,letterSpacing:4,cursor:"pointer",marginBottom:10,marginTop:8}}>
+                发送重置邮件
+              </button>
+              <button onClick={()=>setResetMode(false)} style={{background:"none",border:"none",fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,cursor:"pointer"}}>
+                ← 返回
+              </button>
+            </div>
+          )
+        ) : (
+          <>
+            <input defaultValue="" onChange={e=>{ authEmailRef.current=e.target.value; }}
+              placeholder="邮箱 Email"
+              style={{width:"100%",padding:"11px 14px",marginBottom:10,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
+            {authScreen!=="register" && (
+              <input type="password" defaultValue="" onChange={e=>{ authPassRef.current=e.target.value; }}
+                placeholder="密码 Password（至少6位）"
+                style={{width:"100%",padding:"11px 14px",marginBottom:0,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
+            )}
+            {authScreen==="register" && (
+              <input type="password" defaultValue="" onChange={e=>{ authPassRef.current=e.target.value; }}
+                placeholder="密码 Password（至少6位）"
+                style={{width:"100%",padding:"11px 14px",marginBottom:0,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
+            )}
+            {authScreen==="login" && (
+              <div style={{textAlign:"right",marginBottom:6,marginTop:4}}>
+                <button onClick={()=>{setResetMode(true);setAuthErr("");}} style={{background:"none",border:"none",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:1,cursor:"pointer"}}>忘记密码？</button>
+              </div>
+            )}
+            {authErr && <div style={{fontFamily:TW,fontSize:10,color:"rgba(160,60,40,.8)",letterSpacing:1,marginBottom:10,marginTop:6}}>{authErr}</div>}
+            <button onClick={authScreen==="register"?handleRegister:handleLogin}
+              style={{width:"100%",padding:"12px 0",background:"rgba(18,13,6,.9)",border:"none",color:"#ede5d5",fontFamily:TW,fontSize:11,letterSpacing:4,cursor:"pointer",marginBottom:10,marginTop:8}}>
+              {authScreen==="register"?"注册  Register":"登录  Sign In"}
+            </button>
+            <div style={{display:"flex",justifyContent:"space-between"}}>
+              <button onClick={()=>setAuthScreen(authScreen==="register"?"login":"register")}
+                style={{background:"none",border:"none",fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,cursor:"pointer"}}>
+                {authScreen==="register"?"已有账号 →":"注册新账号 →"}
+              </button>
+              <button onClick={()=>setAuthScreen(null)}
+                style={{background:"none",border:"none",fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,cursor:"pointer"}}>
+                暂不登录 skip
+              </button>
+            </div>
+            <div style={{height:1,background:INK4,margin:"20px 0 14px"}}/>
+            <p style={{fontFamily:SONG,fontSize:12,color:INK3,lineHeight:1.8,fontStyle:"italic"}}>
+              登录后，你的记录会同步到云端，换设备也不会丢失。
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
@@ -782,7 +840,7 @@ ${prevSummary ? `报告分为两个部分：
           <button onClick={handleLogout} style={{background:"none",border:`1px solid ${INK4}`,padding:"3px 8px",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,cursor:"pointer"}}>登出</button>
         </>
       ) : (
-        <button onClick={()=>setAuthScreen("login")} style={{background:"none",border:`1px solid ${INK4}`,padding:"3px 8px",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,cursor:"pointer"}}>登录 · 同步数据</button>
+        <button onClick={()=>setAuthScreen("login")} style={{background:"none",border:"1px solid rgba(180,160,120,.55)",padding:"4px 10px",fontFamily:TW,fontSize:8,color:"rgba(140,118,85,.9)",letterSpacing:2,cursor:"pointer",boxShadow:"0 0 0 1px rgba(200,180,140,.18)"}}>登录 · 云端备份</button>
       )}
     </div>
   );
