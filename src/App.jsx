@@ -507,10 +507,16 @@ export default function App() {
 
   const syncDown = async (uid) => {
     try {
-      const {data, error} = await supabase.from("user_data").select("data").eq("user_id",uid).maybeSingle();
-      if (data?.data && Object.keys(data.data).length > 0) {
+      const {data} = await supabase.from("user_data").select("data").eq("user_id",uid).maybeSingle();
+      // Only restore if cloud has valid app data (must have bankAnswers key)
+      if (data?.data && typeof data.data === "object" && "bankAnswers" in data.data) {
+        console.log("Restoring from cloud");
         persist(data.data);
         setState(data.data);
+      } else {
+        // No valid cloud data — push local up
+        const local = load();
+        if (local?.bankAnswers) { console.log("Pushing local to cloud"); syncUp(local, uid); }
       }
     } catch(e) { console.log("syncDown error", e); }
   };
@@ -518,26 +524,43 @@ export default function App() {
   const syncUp = async (ns, uid) => {
     if (!uid) return;
     try {
-      await supabase.from("user_data").upsert(
+      const res = await supabase.from("user_data").upsert(
         {user_id:uid, data:ns, updated_at:new Date().toISOString()},
         {onConflict:"user_id", ignoreDuplicates:false}
       );
+      console.log("syncUp result", res);
     } catch(e) { console.log("syncUp error", e); }
   };
 
-  const save = (ns) => { persist(ns); setState(ns); if (userRef.current) syncUp(ns, userRef.current.id).catch(console.error); };
+  const save = (ns) => { persist(ns); setState(ns); if (userRef.current) syncUp(ns, userRef.current.id); };
 
   const handleRegister = async () => {
     setAuthErr("");
-    const {error} = await supabase.auth.signUp({email:authEmailRef.current, password:authPassRef.current});
-    if (error) setAuthErr(error.message);
-    else setAuthScreen(null);
+    const {data, error} = await supabase.auth.signUp({email:authEmailRef.current, password:authPassRef.current});
+    if (error) { setAuthErr(error.message); return; }
+    setAuthScreen(null);
+    if (data?.user) {
+      const local = load();
+      if (local?.bankAnswers) syncUp(local, data.user.id);
+    }
   };
   const handleLogin = async () => {
     setAuthErr("");
-    const {error} = await supabase.auth.signInWithPassword({email:authEmailRef.current, password:authPassRef.current});
-    if (error) setAuthErr(error.message);
-    else setAuthScreen(null);
+    const {data, error} = await supabase.auth.signInWithPassword({email:authEmailRef.current, password:authPassRef.current});
+    if (error) { setAuthErr(error.message); return; }
+    setAuthScreen(null);
+    if (data?.user) {
+      // Check cloud first, if empty push local up
+      const {data: cloudData} = await supabase.from("user_data").select("data").eq("user_id", data.user.id).maybeSingle();
+      if (cloudData?.data && "bankAnswers" in cloudData.data) {
+        // Cloud has real data — restore it
+        persist(cloudData.data); setState(cloudData.data);
+      } else {
+        // Cloud empty — push local up
+        const local = load();
+        if (local?.bankAnswers) syncUp(local, data.user.id);
+      }
+    }
   };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); };
 
