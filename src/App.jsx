@@ -760,6 +760,8 @@ ${prevSummary ? `报告分为两个部分：
       <>
           <Paper/>
         <InkFilters/>
+        {authScreen && <AuthOverlay/>}
+        <UserBadge/>
         <div style={W()}>
           <div style={{maxWidth:420,width:"100%",textAlign:"center"}}>
             {bank && <div style={{fontFamily:NUM,fontSize:36,color:INK,letterSpacing:"0.04em",lineHeight:1,marginBottom:20,fontWeight:"normal"}}>{String(bProgress).padStart(2,"0")}<span style={{fontSize:14,letterSpacing:1,color:INK2}}> / {String(bTotal).padStart(2,"0")}</span></div>}
@@ -814,40 +816,53 @@ ${prevSummary ? `报告分为两个部分：
                 <div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <p style={{fontFamily:SONG,fontSize:11,color:INK3,fontStyle:"italic",margin:0}}>
-                      已记录 {totalDays} 天
+                      你已在这里留下 {totalDays} 天的痕迹
                     </p>
                     <button onClick={()=>setShowData(!showData)} style={{background:"none",border:`1px solid ${INK4}`,padding:"3px 10px",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,cursor:"pointer"}}>
-                      {showData?"收起":"回顾记录"}
+                      {showData?"收起":"展开往事"}
                     </button>
                   </div>
 
                   {showData && (
                     <div style={{marginTop:16}}>
                       <TRule my={0}/>
-                      {Object.entries(state.bankAnswers).map(([bankId, answers])=>{
-                        const bk = BANKS.find(b=>b.id===bankId);
-                        if (!bk || Object.keys(answers).length===0) return null;
-                        const refs = state.bankReflections?.[bankId]||{};
-                        const emos = state.bankEmotions?.[bankId]||{};
-                        const entries = Object.entries(refs).filter(([,v])=>v);
-                        return (
-                          <div key={bankId} style={{marginTop:20}}>
-                            <div style={{fontFamily:TW,fontSize:9,color:INK2,letterSpacing:3,marginBottom:10,textTransform:"uppercase"}}>{bk.label} · {bk.en}</div>
-                            {entries.length===0
-                              ? <p style={{fontFamily:SONG,fontSize:11,color:INK3,fontStyle:"italic"}}>这段时间，你选择了沉默。</p>
-                              : entries.map(([idx,text])=>(
-                                <div key={idx} style={{marginBottom:14,paddingLeft:10,borderLeft:`1px solid ${INK4}`}}>
-                                  {emos[idx] && <span style={{fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,display:"block",marginBottom:3}}>{emos[idx]}</span>}
-                                  <p style={{fontFamily:SONG,fontSize:12,color:INK2,lineHeight:1.9,margin:0,letterSpacing:"0.03em"}}>{text}</p>
+                      {Object.values(state.bankAnswers).every(a=>Object.keys(a).length===0)
+                        ? <p style={{fontFamily:SONG,fontSize:12,color:INK3,fontStyle:"italic",marginTop:14,lineHeight:1.9}}>你还没有留下任何痕迹。<br/>也许明天，第一个答案就是开始。</p>
+                        : Object.entries(state.bankAnswers).map(([bankId, answers])=>{
+                            const bk = BANKS.find(b=>b.id===bankId);
+                            if (!bk || Object.keys(answers).length===0) return null;
+                            const refs = state.bankReflections?.[bankId]||{};
+                            const emos = state.bankEmotions?.[bankId]||{};
+                            return (
+                              <div key={bankId} style={{marginTop:24}}>
+                                <div style={{fontFamily:TW,fontSize:9,color:INK2,letterSpacing:3,marginBottom:12,textTransform:"uppercase",borderBottom:`1px solid ${INK4}`,paddingBottom:8}}>
+                                  {bk.label} · {bk.en}
                                 </div>
-                              ))
-                            }
-                          </div>
-                        );
-                      })}
-                      {Object.values(state.bankAnswers).every(a=>Object.keys(a).length===0) && (
-                        <p style={{fontFamily:SONG,fontSize:12,color:INK3,fontStyle:"italic",marginTop:14}}>你还没有留下任何文字。也许明天。</p>
-                      )}
+                                {bk.questions.map((q, i)=>{
+                                  const ans = answers[i];
+                                  if (ans===undefined) return null;
+                                  const label = SCALE.find(s=>s.s===ans);
+                                  const ref = refs[i];
+                                  const emo = emos[i];
+                                  return (
+                                    <div key={i} style={{marginBottom:18,paddingLeft:10,borderLeft:`2px solid ${ans>=5?"rgba(18,13,6,.25)":INK4}`}}>
+                                      <p style={{fontFamily:SONG,fontSize:12,color:INK2,lineHeight:1.8,margin:"0 0 4px",letterSpacing:"0.03em",fontWeight:FW}}>{q.zh}</p>
+                                      <span style={{fontFamily:TW,fontSize:9,color:INK2,letterSpacing:2}}>
+                                        {ans} · {label?.zh||""}
+                                      </span>
+                                      {(emo||ref) && (
+                                        <div style={{marginTop:6,paddingTop:6,borderTop:`1px solid ${INK4}`}}>
+                                          {emo && <span style={{fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,display:"block",marginBottom:3}}>{emo}</span>}
+                                          {ref && <p style={{fontFamily:SONG,fontSize:11,color:INK3,lineHeight:1.9,margin:0,fontStyle:"italic"}}>{ref}</p>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })
+                      }
                     </div>
                   )}
                 </div>
