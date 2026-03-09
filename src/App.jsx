@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://yqfngcdjuciihoyakgpu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxZm5nY2RqdWNpaWhveWFrZ3B1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NjA0NDMsImV4cCI6MjA4ODQzNjQ0M30.Wd-Ql6OrZHiFp3LHuqcJLUayUhxTt0JpJu_ghhizMPE";
@@ -547,15 +547,6 @@ export default function App() {
 
   const go = s => { setFade(false); setTimeout(()=>{ setScreen(s); setFade(true); },230); };
 
-  // DEV: skip to report — remove before real launch
-  const devSkipToReport = () => {
-    const bk = BANKS[0];
-    const fakeAnswers = Object.fromEntries(bk.questions.map((_,i)=>[i,4]));
-    const ns = {...state, bankAnswers:{...state.bankAnswers,[bk.id]:fakeAnswers}, currentBankIdx:0};
-    save(ns); setScreen("report");
-    setTimeout(()=>doReport(ns, bk), 300);
-  };
-
   const BUILTIN_KEY = "YOUR_API_KEY_HERE"; // 替换成你自己的key
   const isFirstBank = (bk) => bk.id === "HSP";
 
@@ -845,7 +836,6 @@ ${prevSummary ? `报告分为两个部分：
           </div>
           <Btn label={sel?"继续  Continue →":"请先选择  Select an answer"} onClick={handleContinue} disabled={!sel}/>
           <div style={{marginTop:24,textAlign:"center"}}>
-            <button onClick={devSkipToReport} style={{background:"none",border:"none",fontFamily:TW,fontSize:8,color:INK4,letterSpacing:2,cursor:"pointer",textTransform:"uppercase"}}>dev: skip to report</button>
           </div>
         </div>
       </div>
