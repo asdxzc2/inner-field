@@ -534,31 +534,50 @@ export default function App() {
 
   const save = (ns) => { persist(ns); setState(ns); if (userRef.current) syncUp(ns, userRef.current.id); };
 
+  const pushToCloud = async (uid, token, localData) => {
+    await fetch("https://yqfngcdjuciihoyakgpu.supabase.co/rest/v1/user_data", {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify({user_id: uid, data: localData, updated_at: new Date().toISOString()})
+    });
+  };
+
   const handleRegister = async () => {
     setAuthErr("");
     const {data, error} = await supabase.auth.signUp({email:authEmailRef.current, password:authPassRef.current});
     if (error) { setAuthErr(error.message); return; }
     setAuthScreen(null);
-    if (data?.user) {
+    if (data?.session) {
       const local = load();
-      if (local?.bankAnswers) syncUp(local, data.user.id);
+      if (local?.bankAnswers) await pushToCloud(data.user.id, data.session.access_token, local);
     }
   };
+
   const handleLogin = async () => {
     setAuthErr("");
     const {data, error} = await supabase.auth.signInWithPassword({email:authEmailRef.current, password:authPassRef.current});
     if (error) { setAuthErr(error.message); return; }
     setAuthScreen(null);
-    if (data?.user) {
-      // Check cloud first, if empty push local up
-      const {data: cloudData} = await supabase.from("user_data").select("data").eq("user_id", data.user.id).maybeSingle();
-      if (cloudData?.data && "bankAnswers" in cloudData.data) {
-        // Cloud has real data — restore it
-        persist(cloudData.data); setState(cloudData.data);
+    if (data?.session) {
+      const uid = data.user.id;
+      const token = data.session.access_token;
+      // Check cloud first
+      const res = await fetch(`https://yqfngcdjuciihoyakgpu.supabase.co/rest/v1/user_data?user_id=eq.${uid}&select=data`, {
+        headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + token }
+      });
+      const rows = await res.json();
+      if (rows?.[0]?.data?.bankAnswers) {
+        // Cloud has real data — restore
+        persist(rows[0].data); setState(rows[0].data);
       } else {
-        // Cloud empty — push local up
+        // Cloud empty — push local
         const local = load();
-        if (local?.bankAnswers) syncUp(local, data.user.id);
+        if (local?.bankAnswers) await pushToCloud(uid, token, local);
       }
     }
   };
