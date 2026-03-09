@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = "https://yqfngcdjuciihoyakgpu.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxZm5nY2RqdWNpaWhveWFrZ3B1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NjA0NDMsImV4cCI6MjA4ODQzNjQ0M30.Wd-Ql6OrZHiFp3LHuqcJLUayUhxTt0JpJu_ghhizMPE";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ─────────────────────────────────────────────────────────────
 // QUESTION BANKS
@@ -473,7 +478,52 @@ export default function App() {
   const [loading, setLoad]   = useState(false);
   const [apiKey,  setApiKey] = useState(localStorage.getItem("hsp_key")||"");
   const [needKey, setNeedKey]= useState(false);
+  const [user,    setUser]   = useState(null);
+  const [authScreen, setAuthScreen] = useState(null);
+  const [authEmail, setAuthEmail]   = useState("");
+  const [authPass,  setAuthPass]    = useState("");
+  const [authErr,   setAuthErr]     = useState("");
   const textRef = useRef(null);
+
+  // Supabase auth listener
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>{
+      if (session?.user) { setUser(session.user); syncDown(session.user.id); }
+    });
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_,session)=>{
+      if (session?.user) { setUser(session.user); syncDown(session.user.id); }
+      else setUser(null);
+    });
+    return ()=> subscription.unsubscribe();
+  },[]);
+
+  const syncDown = async (uid) => {
+    const {data} = await supabase.from("user_data").select("data").eq("user_id",uid).single();
+    if (data?.data && Object.keys(data.data).length > 0) {
+      setState(data.data); persist(data.data);
+    }
+  };
+
+  const syncUp = async (ns, uid) => {
+    if (!uid) return;
+    await supabase.from("user_data").upsert({user_id:uid, data:ns, updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  };
+
+  const save = (ns) => { save(ns); if (user) syncUp(ns, user.id); };
+
+  const handleRegister = async () => {
+    setAuthErr("");
+    const {error} = await supabase.auth.signUp({email:authEmail, password:authPass});
+    if (error) setAuthErr(error.message);
+    else setAuthScreen(null);
+  };
+  const handleLogin = async () => {
+    setAuthErr("");
+    const {error} = await supabase.auth.signInWithPassword({email:authEmail, password:authPass});
+    if (error) setAuthErr(error.message);
+    else setAuthScreen(null);
+  };
+  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); };
 
   const bank     = state.allBanksDone ? null : BANKS[state.currentBankIdx] || null;
   const bAnswers = bank ? (state.bankAnswers[bank.id]||{}) : {};
@@ -502,7 +552,7 @@ export default function App() {
     const bk = BANKS[0];
     const fakeAnswers = Object.fromEntries(bk.questions.map((_,i)=>[i,4]));
     const ns = {...state, bankAnswers:{...state.bankAnswers,[bk.id]:fakeAnswers}, currentBankIdx:0};
-    setState(ns); persist(ns); setScreen("report");
+    save(ns); setScreen("report");
     setTimeout(()=>doReport(ns, bk), 300);
   };
 
@@ -577,7 +627,7 @@ ${prevSummary ? `报告分为两个部分：
       const data = await res.json();
       const text = data.content?.[0]?.text||"生成失败，请检查 API Key。";
       const ns = {...st, bankReports:{...st.bankReports,[bk.id]:text}};
-      setState(ns); persist(ns); setReport(text);
+      save(ns); setReport(text);
     } catch { setReport("网络错误，请稍后重试。"); }
     setLoad(false);
   };
@@ -590,7 +640,7 @@ ${prevSummary ? `报告分为两个部分：
     const nr = {...(state.bankReflections[id]||{}), [qIdx]:note};
     const ne = {...(state.bankEmotions[id]||{}), [qIdx]:em?.zh||""};
     const ns = {...state, bankAnswers:{...state.bankAnswers,[id]:na}, bankReflections:{...state.bankReflections,[id]:nr}, bankEmotions:{...state.bankEmotions,[id]:ne}, lastDay:today()};
-    setState(ns); persist(ns); setSel(null); setEm(null); setNote("");
+    save(ns); setSel(null); setEm(null); setNote("");
     if (Object.keys(na).length>=bTotal){ go("report"); setTimeout(()=>doReport(ns,bank),300); }
     else go("rest");
   };
@@ -599,13 +649,13 @@ ${prevSummary ? `报告分为两个部分：
     const next = state.currentBankIdx+1;
     const done = next>=BANKS.length;
     const ns = {...state, currentBankIdx:next, allBanksDone:done, lastDay:null};
-    setState(ns); persist(ns);
+    save(ns);
     if (done) go("pure"); else { setSel(null); setEm(null); setNote(""); go("q"); }
   };
 
   const handleSavePure = () => {
     const ns = {...state, pureLog:[...state.pureLog,{date:today(),emotion:em?.zh||"",note}], lastDay:today()};
-    setState(ns); persist(ns); setEm(null); setNote(""); go("rest");
+    save(ns); setEm(null); setNote(""); go("rest");
   };
 
   // Shared style helpers
@@ -636,6 +686,57 @@ ${prevSummary ? `报告分为两个部分：
 
   const [showData, setShowData] = useState(false);
   const [reportTab, setReportTab] = useState("single");
+
+  // ── AUTH OVERLAY ──
+  const AuthOverlay = () => (
+    <div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(237,229,213,.96)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{maxWidth:360,width:"100%"}}>
+        <div style={{fontFamily:TW,fontSize:10,letterSpacing:3,color:INK2,marginBottom:16,textTransform:"uppercase",fontWeight:700}}>
+          {authScreen==="register"?"创建账号  Register":"登录  Sign In"}
+        </div>
+        <div style={{height:1,background:INK,opacity:.35,marginBottom:24}}/>
+        <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)}
+          placeholder="邮箱 Email"
+          style={{width:"100%",padding:"11px 14px",marginBottom:10,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
+        <input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)}
+          placeholder="密码 Password（至少6位）"
+          style={{width:"100%",padding:"11px 14px",marginBottom:6,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
+        {authErr && <div style={{fontFamily:TW,fontSize:10,color:"rgba(160,60,40,.8)",letterSpacing:1,marginBottom:10}}>{authErr}</div>}
+        <button onClick={authScreen==="register"?handleRegister:handleLogin}
+          style={{width:"100%",padding:"12px 0",background:"rgba(18,13,6,.9)",border:"none",color:"#ede5d5",fontFamily:TW,fontSize:11,letterSpacing:4,cursor:"pointer",marginBottom:10,marginTop:8}}>
+          {authScreen==="register"?"注册  Register":"登录  Sign In"}
+        </button>
+        <div style={{display:"flex",justifyContent:"space-between"}}>
+          <button onClick={()=>setAuthScreen(authScreen==="register"?"login":"register")}
+            style={{background:"none",border:"none",fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,cursor:"pointer"}}>
+            {authScreen==="register"?"已有账号 →":"注册新账号 →"}
+          </button>
+          <button onClick={()=>setAuthScreen(null)}
+            style={{background:"none",border:"none",fontFamily:TW,fontSize:9,color:INK3,letterSpacing:2,cursor:"pointer"}}>
+            暂不登录 skip
+          </button>
+        </div>
+        <div style={{height:1,background:INK4,margin:"20px 0 14px"}}/>
+        <p style={{fontFamily:SONG,fontSize:12,color:INK3,lineHeight:1.8,fontStyle:"italic"}}>
+          登录后，你的记录会同步到云端，换设备也不会丢失。
+        </p>
+      </div>
+    </div>
+  );
+
+  // ── USER BADGE (top-right corner) ──
+  const UserBadge = () => (
+    <div style={{position:"fixed",top:18,right:20,zIndex:50,display:"flex",alignItems:"center",gap:8}}>
+      {user ? (
+        <>
+          <span style={{fontFamily:TW,fontSize:8,color:INK3,letterSpacing:1}}>{user.email?.split("@")[0]}</span>
+          <button onClick={handleLogout} style={{background:"none",border:`1px solid ${INK4}`,padding:"3px 8px",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,cursor:"pointer"}}>登出</button>
+        </>
+      ) : (
+        <button onClick={()=>setAuthScreen("login")} style={{background:"none",border:`1px solid ${INK4}`,padding:"3px 8px",fontFamily:TW,fontSize:8,color:INK3,letterSpacing:2,cursor:"pointer"}}>登录 · 同步数据</button>
+      )}
+    </div>
+  );
 
   // ── REST ──
   if (screen==="rest") {
@@ -706,6 +807,8 @@ ${prevSummary ? `报告分为两个部分：
     <>
       <Paper/>
       <InkFilters/>
+      {authScreen && <AuthOverlay/>}
+      <UserBadge/>
       <div style={W()}>
         <div style={{maxWidth:460,width:"100%"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:16}}>
@@ -754,6 +857,8 @@ ${prevSummary ? `报告分为两个部分：
     <>
       <Paper/>
       <InkFilters/>
+      {authScreen && <AuthOverlay/>}
+      <UserBadge/>
       <div style={W({justifyContent:"flex-start",paddingTop:44,paddingBottom:52})}>
         <div style={{maxWidth:460,width:"100%"}}>
           <Label t="一句值得驻留的话 · A line to dwell on"/>
@@ -795,6 +900,8 @@ ${prevSummary ? `报告分为两个部分：
     <>
       <Paper/>
       <InkFilters/>
+      {authScreen && <AuthOverlay/>}
+      <UserBadge/>
       <div style={W({justifyContent:"flex-start",paddingTop:44,paddingBottom:64})}>
         <div style={{maxWidth:500,width:"100%"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:16}}>
@@ -889,7 +996,7 @@ ${prevSummary ? `报告分为两个部分：
               <TRule my={32}/>
               <Btn label={`开启下一套  ${BANKS[state.currentBankIdx+1]?.label||"纯粹记录"} →`} onClick={handleNextBank}/>
               <div style={{height:8}}/>
-              <Btn ghost label="重新开始  Start Over" onClick={()=>{if(window.confirm("重置所有记录？")){localStorage.removeItem(KEY);setState(initState());setScreen("q");}}}/>
+              <Btn ghost label="重新开始  Start Over" onClick={()=>{if(window.confirm("重置所有记录？")){localStorage.removeItem(KEY);const ns=initState();setState(ns);if(user)syncUp(ns,user.id);setScreen("q");}}}/>
             </div>
           )}
         </div>
