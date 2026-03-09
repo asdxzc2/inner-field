@@ -523,7 +523,7 @@ export default function App() {
     } catch(e) { console.log("syncUp error", e); }
   };
 
-  const save = (ns) => { save(ns); if (user) syncUp(ns, user.id); };
+  const save = (ns) => { persist(ns); setState(ns); if (user) syncUp(ns, user.id).catch(console.error); };
 
   const handleRegister = async () => {
     setAuthErr("");
