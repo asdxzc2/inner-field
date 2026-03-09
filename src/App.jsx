@@ -480,9 +480,9 @@ export default function App() {
   const [needKey, setNeedKey]= useState(false);
   const [user,    setUser]   = useState(null);
   const [authScreen, setAuthScreen] = useState(null);
-  const [authEmail, setAuthEmail]   = useState("");
-  const [authPass,  setAuthPass]    = useState("");
   const [authErr,   setAuthErr]     = useState("");
+  const authEmailRef = useRef("");
+  const authPassRef  = useRef("");
   const textRef = useRef(null);
 
   // Supabase auth listener
@@ -513,13 +513,13 @@ export default function App() {
 
   const handleRegister = async () => {
     setAuthErr("");
-    const {error} = await supabase.auth.signUp({email:authEmail, password:authPass});
+    const {error} = await supabase.auth.signUp({email:authEmailRef.current, password:authPassRef.current});
     if (error) setAuthErr(error.message);
     else setAuthScreen(null);
   };
   const handleLogin = async () => {
     setAuthErr("");
-    const {error} = await supabase.auth.signInWithPassword({email:authEmail, password:authPass});
+    const {error} = await supabase.auth.signInWithPassword({email:authEmailRef.current, password:authPassRef.current});
     if (error) setAuthErr(error.message);
     else setAuthScreen(null);
   };
@@ -686,10 +686,10 @@ ${prevSummary ? `报告分为两个部分：
           {authScreen==="register"?"创建账号  Register":"登录  Sign In"}
         </div>
         <div style={{height:1,background:INK,opacity:.35,marginBottom:24}}/>
-        <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)}
+        <input defaultValue="" onChange={e=>{ authEmailRef.current=e.target.value; }}
           placeholder="邮箱 Email"
           style={{width:"100%",padding:"11px 14px",marginBottom:10,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
-        <input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)}
+        <input type="password" defaultValue="" onChange={e=>{ authPassRef.current=e.target.value; }}
           placeholder="密码 Password（至少6位）"
           style={{width:"100%",padding:"11px 14px",marginBottom:6,background:"rgba(18,13,6,.04)",border:`1px solid ${INK4}`,fontFamily:SONG,fontSize:13,color:INK,outline:"none",boxSizing:"border-box"}}/>
         {authErr && <div style={{fontFamily:TW,fontSize:10,color:"rgba(160,60,40,.8)",letterSpacing:1,marginBottom:10}}>{authErr}</div>}
