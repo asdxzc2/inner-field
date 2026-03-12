@@ -317,6 +317,7 @@ const initState = () => load() || {
   pureLog: [],
   lastDay: null,
   allBanksDone: false,
+  savedAt: null,
 };
 
 const TW   = "'Courier New','Courier',monospace";
@@ -520,15 +521,22 @@ export default function App() {
   const syncDown = async (uid) => {
     try {
       const {data} = await supabase.from("user_data").select("data").eq("user_id",uid).maybeSingle();
-      // Only restore if cloud has valid app data (must have bankAnswers key)
-      if (data?.data && typeof data.data === "object" && "bankAnswers" in data.data) {
-        console.log("Restoring from cloud");
-        persist(data.data);
-        setState(data.data);
+      const cloud = data?.data;
+      const local = load();
+      if (cloud && typeof cloud === "object" && "bankAnswers" in cloud) {
+        // Both exist — use whichever is newer
+        const cloudTime = cloud.savedAt ? new Date(cloud.savedAt) : new Date(0);
+        const localTime = local?.savedAt ? new Date(local.savedAt) : new Date(0);
+        if (cloudTime >= localTime) {
+          console.log("Cloud newer, restoring");
+          persist(cloud); setState(cloud);
+        } else {
+          console.log("Local newer, pushing to cloud");
+          syncUp(local, uid);
+        }
       } else {
         // No valid cloud data — push local up
-        const local = load();
-        if (local?.bankAnswers) { console.log("Pushing local to cloud"); syncUp(local, uid); }
+        if (local?.bankAnswers) { console.log("No cloud data, pushing local"); syncUp(local, uid); }
       }
     } catch(e) { console.log("syncDown error", e); }
   };
@@ -544,7 +552,7 @@ export default function App() {
     } catch(e) { console.log("syncUp error", e); }
   };
 
-  const save = (ns) => { persist(ns); setState(ns); if (userRef.current) syncUp(ns, userRef.current.id); };
+  const save = (ns) => { const stamped = {...ns, savedAt: new Date().toISOString()}; persist(stamped); setState(stamped); if (userRef.current) syncUp(stamped, userRef.current.id); };
 
   const pushToCloud = async (uid, token, localData) => {
     await fetch("https://yqfngcdjuciihoyakgpu.supabase.co/rest/v1/user_data", {
